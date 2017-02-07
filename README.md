@@ -7,9 +7,9 @@ In development.  Requires dataset
 
 ## Usage
 
-'''shell
+```shell
    python caltechdata_read.py [-h]
-'''
+```
 
 optional arguments:
   -h, --help  show this help message and exit
