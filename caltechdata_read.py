@@ -15,6 +15,12 @@ if __name__ == "__main__":
     #parser.add_argument('-t', dest='topic_id',help="topic of questions to\
     #        return (default all)")
 
+    #TODO: - Support paging through records from api
+    #http://caltechdata.tind.io/api/records/?q=&sort=-mostrecent&size=10&page=1
+    # - Add files to dataset
+    # - Check dates to limit file downloads
+    # - Check file size for files
+
     args = parser.parse_args()
 
     api_url = "https://caltechdata.tind.io/api/records/"
