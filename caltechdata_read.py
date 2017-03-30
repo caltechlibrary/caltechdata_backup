@@ -25,11 +25,18 @@ if __name__ == "__main__":
 
     api_url = "https://caltechdata.tind.io/api/records/"
     
-    #if args.topic_id:
-    #    api_url = api_url + '&topic_id=' + args.topic_id
-
     req = urllib.request.Request(api_url)
     s = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    response = urllib.request.urlopen(req,context=s)
+    data = json.JSONDecoder().decode(response.read().decode('UTF-8'))
+
+    #Get number of documents
+    count = 0
+    for dtype in data['aggregations']['cal_resource_type']['buckets']:
+        count = count + dtype['doc_count']
+
+    new_url = api_url + '?query=&size='+str(count)
+    req = urllib.request.Request(new_url)
     response = urllib.request.urlopen(req,context=s)
     data = json.JSONDecoder().decode(response.read().decode('UTF-8'))
 
@@ -49,11 +56,11 @@ if __name__ == "__main__":
         record = f['metadata']
         if 'electronic_location_and_access' in record:
             for erecord in  record['electronic_location_and_access']:
-                url = erecord["uniform_resource_identifier"]
-                req = urllib.request.Request(url)
-                s = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-                response = urllib.request.urlopen(req,context=s)
+                #url = erecord["uniform_resource_identifier"]
+                #req = urllib.request.Request(url)
+                #s = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+                #response = urllib.request.urlopen(req,context=s)
             
-                outfile = open(erecord['electronic_name'][0],'wb')
-                outfile.write(response.read())
+                #outfile = open(erecord['electronic_name'][0],'wb')
+                #outfile.write(response.read())
                 print(erecord['electronic_name'][0])
