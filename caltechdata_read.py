@@ -22,12 +22,13 @@ def read_records(data):
         if 'electronic_location_and_access' in metadata:
             for erecord in  metadata['electronic_location_and_access']:
                 url = erecord["uniform_resource_identifier"]
-                #req = urllib.request.Request(url)
-                #s = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-                #response = urllib.request.urlopen(req,context=s)
+                req = urllib.request.Request(url)
+                s = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+                response = urllib.request.urlopen(req,context=s)
 
-                #outfile = open(erecord['electronic_name'][0],'wb')
-                #outfile.write(response.read())
+                outfile = open(erecord['electronic_name'][0],'wb')
+                outfile.write(response.read())
+                os.system("dataset attach "+str(record['id'])+" "+erecord['electronic_name'][0]) 
                 print(erecord['electronic_name'][0])    
 
 if __name__ == "__main__":
