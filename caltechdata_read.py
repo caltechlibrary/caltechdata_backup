@@ -24,11 +24,14 @@ def read_records(data):
                 url = erecord["uniform_resource_identifier"]
                 req = urllib.request.Request(url)
                 s = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-                response = urllib.request.urlopen(req,context=s)
+                try:
+                    response = urllib.request.urlopen(req,context=s)
+                    outfile = open(erecord['electronic_name'][0],'wb')
+                    outfile.write(response.read())
+                    os.system("dataset attach "+str(record['id'])+" "+erecord['electronic_name'][0])
+                except urllib.error.HTTPError:
+                    print("It looks like this file is embargoed.  We can't access until after the embargo is lifted")
 
-                outfile = open(erecord['electronic_name'][0],'wb')
-                outfile.write(response.read())
-                os.system("dataset attach "+str(record['id'])+" "+erecord['electronic_name'][0]) 
                 print(erecord['electronic_name'][0])    
 
 if __name__ == "__main__":
