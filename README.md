@@ -9,7 +9,7 @@ Initialization:
     Create a collection by typing
     ```shell
     dataset init caltechdata
-    export DATASET_COLLECTION=caltechdata
+    export DATASET=caltechdata
     ```
 
 ## Usage
