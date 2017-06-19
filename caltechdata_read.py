@@ -7,21 +7,22 @@ import json
 import os
 import subprocess
 import shutil
-
+import requests
+from clint.textui import progress
 
 def download_file(erecord,rid):
-    url = erecord["uniform_resource_identifier"]
-    req = urllib.request.Request(url)
-    s = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    r = requests.get(erecord["uniform_resource_identifier"],stream=True)
     fname = erecord['electronic_name'][0]
-    print("Downloading: "+fname)
-    try:
-        response = urllib.request.urlopen(req,context=s)
-        outfile = open(fname,'wb')
-        outfile.write(response.read())
-    except urllib.error.HTTPError:
+    if r.status_code == 403:
         print("It looks like this file is embargoed.  We can't access until after the embargo is lifted")
     else:
+        with open(fname, 'wb') as f:
+            total_length = int(r.headers.get('content-length'))
+            for chunk in \
+progress.bar(r.iter_content(chunk_size=1024),expected_size=(total_length/1024) + 1):
+                if chunk:
+                    f.write(chunk)
+                    f.flush()
         return fname
 
 def read_records(data,current):
@@ -68,10 +69,10 @@ def read_records(data,current):
                                     print(erecord)
                                     print(erecord['electronic_name'][0],existing_files)
                                     files.append(download_file(erecord,rid))
-                    else:
-                        #Fille wasn't listed before
-                        print("Not listed")
-                        files.append(download_file(erecord,rid))
+                else:
+                    #Fille wasn't listed before
+                    print("Not listed")
+                    files.append(download_file(erecord,rid))
 
         #Save results in dataset
         outstr = json.dumps(record)
@@ -83,9 +84,16 @@ def read_records(data,current):
         os.system("dataset create "+str(record['id'])+'.json'+" '"+outstr+"'")
 
         print("Attaching ",files)
+        fstring = ''
         for f in files:
             if f != None:
-                os.system("dataset attach "+str(rid)+" "+f)
+                fstring = fstring + f + ' '
+ 
+        if fstring != '':
+            os.system("dataset attach "+str(rid)+" "+fstring)
+        
+        for f in files:
+            if f != None:
                 os.remove(f)
 
 if __name__ == "__main__":
