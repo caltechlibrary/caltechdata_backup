@@ -1,12 +1,9 @@
 import argparse
 import urllib.request
-import urllib.parse
-import urllib.error
 import ssl
 import json
 import os
 import subprocess
-import shutil
 import requests
 from clint.textui import progress
 
@@ -39,8 +36,6 @@ def read_records(data,current):
                 if rid in current:
                     existing_metadata =\
                     subprocess.check_output(["dataset","read",rid],universal_newlines=True)
-                    #existing_metadata = existing_metadata.decode('utf-8')
-                    #print(existing_metadata)
                     existing_metadata = json.loads(existing_metadata)
                     existing_metadata=existing_metadata["metadata"]
                     #Check if file was there previously
@@ -51,7 +46,6 @@ def read_records(data,current):
                             existing_size.append(ex_rec['file_size'])
                         if new_size not in existing_size:
                             #New file
-                            print(new_size, existing_size)
                             download = True
                         
                         #This code block is a double check that we have the
@@ -76,7 +70,6 @@ def read_records(data,current):
                         download = True
                 else:
                     #New record
-                    #print("Not listed")
                     download = True
 
         #Save results in dataset
@@ -119,9 +112,6 @@ if __name__ == "__main__":
     returns data and adds to dataset structure on disk")
 
     os.environ["DATASET"] = "caltechdata"
-
-    #parser.add_argument('-t', dest='topic_id',help="topic of questions to\
-    #        return (default all)")
 
     args = parser.parse_args()
 
