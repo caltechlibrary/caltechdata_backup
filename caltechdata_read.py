@@ -22,7 +22,7 @@ def download_file(erecord,rid):
 progress.bar(r.iter_content(chunk_size=1024),expected_size=(total_length/1024) + 1):
                 if chunk:
                     f.write(chunk)
-                    f.flush()
+                    #f.flush()
         return fname
 
 def read_records(data,current):
@@ -30,8 +30,8 @@ def read_records(data,current):
     for record in data:
         rid = str(record['id'])
         metadata = record['metadata']
-        files = []
-        #Download all files
+        download = False #Flag for downloading files
+        #Do we need to download?
         if 'electronic_location_and_access' in metadata:
             #Look at all files
             for erecord in  metadata['electronic_location_and_access']:
@@ -45,34 +45,39 @@ def read_records(data,current):
                     existing_metadata=existing_metadata["metadata"]
                     #Check if file was there previously
                     if 'electronic_location_and_access' in existing_metadata:
-                        #If the file has changes
                         new_size = erecord['file_size']
                         existing_size = []
-                        #print(existing_metadata)
-                        #print(existing_metadata['metadata'])
-                        #print(existing_metadata['electronic_location_and_access'])
                         for ex_rec in existing_metadata['electronic_location_and_access']:
                             existing_size.append(ex_rec['file_size'])
                         if new_size not in existing_size:
+                            #New file
                             print(new_size, existing_size)
-                            files.append(download_file(erecord,rid))
-                        else:
-                            #print("We have the file-or not")
-                            try: existing_files=subprocess.check_output(["dataset","attachments",rid],universal_newlines=True)
-                            except subprocess.CalledProcessError:
-                                #Handle case where there is no files
-                                #SHould check specific error
-                                print("No existing attachments")
-                                files.append(download_file(erecord,rid))
-                            else:
-                                if erecord['electronic_name'][0] not in existing_files:
-                                    print(erecord)
-                                    print(erecord['electronic_name'][0],existing_files)
-                                    files.append(download_file(erecord,rid))
+                            download = True
+                        
+                        #This code block is a double check that we have the
+                        #files.  It works but is slow because of the metadata
+                        #limitations in dataset.  This code will be used
+                        #pending changes to dataset
+                        #else:
+                        #    #File sizes match - no change indicated from metadata
+                        #    try: existing_files=subprocess.check_output(["dataset","attachments",rid],universal_newlines=True)
+                        #    except subprocess.CalledProcessError:
+                        #        #Missing file-embargo or previous error
+                        #        print("No existing attachments")
+                        #        download = True
+                        #    else:
+                        #        #Confirm that we actually have the attachment
+                        #        if erecord['electronic_name'][0] not in existing_files:
+                        #            print(erecord)
+                        #            print(erecord['electronic_name'][0],existing_files)
+                        #            download = True
+                    else:
+                        #New file
+                        download = True
                 else:
-                    #Fille wasn't listed before
-                    print("Not listed")
-                    files.append(download_file(erecord,rid))
+                    #New record
+                    #print("Not listed")
+                    download = True
 
         #Save results in dataset
         outstr = json.dumps(record)
@@ -83,20 +88,31 @@ def read_records(data,current):
 
         os.system("dataset create "+str(record['id'])+'.json'+" '"+outstr+"'")
 
-        print("Attaching ",files)
-        fstring = ''
-        for f in files:
-            if f != None:
-                fstring = fstring + f + ' '
- 
-        if fstring != '':
-            os.system("dataset attach "+str(rid)+" "+fstring)
+        if download == True:
+            files = []
+            fstring = ''
+
+            print("Downloading files for ",rid)
+
+            for erecord in metadata['electronic_location_and_access']:
+                f = download_file(erecord,rid)
+                files.append(f)
+                if f != None:
+                    fstring = fstring + f + ' '
+
+            print("Attaching files")
+
+            if fstring != '':
+                os.system("dataset attach "+str(rid)+" "+fstring)
         
-        for f in files:
-            if f != None:
-                os.remove(f)
+            for f in files:
+                if f != None:
+                    os.remove(f)
 
 if __name__ == "__main__":
+
+    #Need to have caltechdata dataset initialized
+    #dataset init caltechdata
 
     parser = argparse.ArgumentParser(description=\
     "caltechdata_read queries the caltechDATA (Invenio 3) API\
@@ -106,11 +122,6 @@ if __name__ == "__main__":
 
     #parser.add_argument('-t', dest='topic_id',help="topic of questions to\
     #        return (default all)")
-
-    #TODO: - Support paging through records from api
-    #http://caltechdata.tind.io/api/records/?q=&sort=-mostrecent&size=10&page=1
-    # - Check dates to limit file downloads
-    # - Check file size for files
 
     args = parser.parse_args()
 
