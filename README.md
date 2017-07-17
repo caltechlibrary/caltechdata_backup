@@ -1,5 +1,7 @@
 # caltechdata_read
 
+[![DOI](https://data.caltech.edu/badge/81266861.svg)](https://data.caltech.edu/badge/latestdoi/81266861)
+
 caltechdata_read queries the caltechDATA (Invenio 3) API, returns data, and adds
 to dataset structure on disk
 
