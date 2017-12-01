@@ -11,10 +11,10 @@ In development.  Requires dataset (https://github.com/caltechlibrary/dataset), r
 
 Create a collection by typing:
     
-    ```shell
+```shell
     dataset init caltechdata
     export DATASET=caltechdata
-    ```
+```
 
 ## Usage
 
