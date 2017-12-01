@@ -7,8 +7,10 @@ to dataset structure on disk
 
 In development.  Requires dataset (https://github.com/caltechlibrary/dataset), requests (http://docs.python-requests.org/en/master/), and clint (https://github.com/kennethreitz/clint).
 
-Initialization:
-    Create a collection by typing
+## Initialization
+
+Create a collection by typing:
+    
     ```shell
     dataset init caltechdata
     export DATASET=caltechdata
