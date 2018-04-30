@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import requests
+import dataset
 from clint.textui import progress
 
 def download_file(erecord,rid):
@@ -12,6 +13,7 @@ def download_file(erecord,rid):
     fname = erecord['electronic_name'][0]
     if r.status_code == 403:
         print("It looks like this file is embargoed.  We can't access until after the embargo is lifted")
+        return ''
     else:
         with open(fname, 'wb') as f:
             total_length = int(r.headers.get('content-length'))
@@ -22,7 +24,7 @@ progress.bar(r.iter_content(chunk_size=1024),expected_size=(total_length/1024) +
                     #f.flush()
         return fname
 
-def read_records(data,current):
+def read_records(data,current,collection):
     #read records in 'hits' structure
     for record in data:
         rid = str(record['id'])
@@ -34,9 +36,10 @@ def read_records(data,current):
             for erecord in  metadata['electronic_location_and_access']:
                 #Check existing record for file
                 if rid in current:
-                    existing_metadata =\
-                    subprocess.check_output(["dataset","read",rid],universal_newlines=True)
-                    existing_metadata = json.loads(existing_metadata)
+                    existing_metadata,err = dataset.read(collection,rid)
+                    if err != "":
+                        print(f"Unexpected error for {key} in {collection_name}, {err}")
+                        exit()
                     existing_metadata=existing_metadata["metadata"]
                     #Check if file was there previously
                     if 'electronic_location_and_access' in existing_metadata:
@@ -73,30 +76,36 @@ def read_records(data,current):
                     download = True
 
         #Save results in dataset
-        outstr = json.dumps(record)
-
-        #Replace single quotes with complicated escape
-        outstr = outstr.replace("'","'\\''")
         print("Saving record " + str(rid))
 
-        os.system("dataset create "+str(record['id'])+'.json'+" '"+outstr+"'")
+        if rid in current:
+            err = dataset.update(collection,str(record['id']),record)
+            if err != '':
+                print(f"Failed, could not create record: {err}")
+                exit()
+        else:
+            err = dataset.create(collection,str(record['id']),record)
+            if err != '':
+                print(f"Failed, could not create record: {err}")
+                exit()
 
         if download == True:
             files = []
-            fstring = ''
 
             print("Downloading files for ",rid)
 
             for erecord in metadata['electronic_location_and_access']:
                 f = download_file(erecord,rid)
                 files.append(f)
-                if f != None:
-                    fstring = fstring + f + ' '
 
+            print(files)
             print("Attaching files")
 
-            if fstring != '':
-                os.system("dataset attach "+str(rid)+" "+fstring)
+            if len(files) != 0:
+                err = dataset.attach(collection,rid,files)
+                if err != '':
+                    print(f"Failed on attach {err}")
+                    exit()   
         
             for f in files:
                 if f != None:
@@ -104,32 +113,33 @@ def read_records(data,current):
 
 if __name__ == "__main__":
 
-    #Need to have caltechdata dataset initialized
-    #dataset init caltechdata
-
     parser = argparse.ArgumentParser(description=\
     "caltechdata_read queries the caltechDATA (Invenio 3) API\
     returns data and adds to dataset structure on disk")
 
-    os.environ["DATASET"] = "caltechdata"
+    collection = "caltechdata.ds"
+    if os.path.isdir(collection)==False:
+        err = dataset.init(collection)
+        if err != '':
+            print(f"Failed on creatr {err}")
+            exit()
 
     args = parser.parse_args()
 
     api_url = "https://caltechdata.tind.io/api/records/"
  
     #Get the existing records
-    current = subprocess.check_output(["dataset","keys"],universal_newlines=True).splitlines()
-
+    current = dataset.keys(collection)
     req = urllib.request.Request(api_url)
     s = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
     response = urllib.request.urlopen(req,context=s)
     data = json.JSONDecoder().decode(response.read().decode('UTF-8'))
 
-    read_records(data['hits']['hits'],current)
+    read_records(data['hits']['hits'],current,collection)
     #if we have more pages of data
     while 'next' in data['links']:
         req = urllib.request.Request(data['links']['next'])        
         response = urllib.request.urlopen(req,context=s)
         data = json.JSONDecoder().decode(response.read().decode('UTF-8'))
         
-        read_records(data['hits']['hits'],current)
+        read_records(data['hits']['hits'],current,collection)
