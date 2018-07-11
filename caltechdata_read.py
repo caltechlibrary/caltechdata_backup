@@ -13,7 +13,7 @@ def download_file(erecord,rid):
     fname = erecord['electronic_name'][0]
     if r.status_code == 403:
         print("It looks like this file is embargoed.  We can't access until after the embargo is lifted")
-        return ''
+        return None
     else:
         with open(fname, 'wb') as f:
             total_length = int(r.headers.get('content-length'))
@@ -96,7 +96,8 @@ def read_records(data,current,collection):
 
             for erecord in metadata['electronic_location_and_access']:
                 f = download_file(erecord,rid)
-                files.append(f)
+                if f != None:
+                    files.append(f)
 
             print(files)
             print("Attaching files")
