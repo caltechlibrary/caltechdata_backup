@@ -126,7 +126,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    api_url = "https://caltechdata.tind.io/api/records/"
+    api_url = "https://data.caltech.edu/api/records/"
 
     # Get the existing records
     current = dataset.keys(collection)
