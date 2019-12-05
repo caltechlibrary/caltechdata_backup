@@ -1,25 +1,18 @@
-# caltechdata_read
+# caltechdata_backup
 
 [![DOI](https://data.caltech.edu/badge/81266861.svg)](https://data.caltech.edu/badge/latestdoi/81266861)
 
-caltechdata_read queries the caltechDATA (Invenio 3) API, returns data, and adds
+caltechdata_backup queries the caltechDATA (Invenio 3) API, returns data, and adds
 to dataset structure on disk
 
-In development.  Requires Python 3 (Recommended via Anaconda https://www.anaconda.com/download) with reqests and clint (pip install clint).  Requires dataset (https://github.com/caltechlibrary/dataset).
-
-## Initialization
-
-Create a collection by typing:
-    
-```shell
-    dataset init caltechdata
-    export DATASET=caltechdata
-```
+In development.  Requires Python 3 (Recommended via Anaconda
+https://www.anaconda.com/download) with reqests and py_dataset
+(https://github.com/caltechlibrary/py_dataset).
 
 ## Usage
 
 ```shell
-   python caltechdata_read.py [-h]
+   python caltechdata_backup.py [-h]
 ```
 
 optional arguments:
