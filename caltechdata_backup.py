@@ -36,7 +36,7 @@ def read_records(data, current, collection):
     for record in data:
         rid = str(record["id"])
         metadata = record["metadata"]
-        download = False # Flag for downloading files
+        download = False  # Flag for downloading files
         # Do we need to download?
         if "electronic_location_and_access" in metadata:
             # Get information about already backed up files:
@@ -62,13 +62,11 @@ def read_records(data, current, collection):
                     dl = dl + 1
             if dl == count:
                 print(
-                        "files already downloaded ",
-                        existing_size,
-                        existing_names,
-                    )
-                download = False        
+                    "files already downloaded ", existing_size, existing_names,
+                )
+                download = False
             else:
-                print("file mismatch ", existing_size, existing_names,dl,count)
+                print("file mismatch ", existing_size, existing_names, dl, count)
                 download = True
 
         # Save results in dataset
