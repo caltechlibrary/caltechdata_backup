@@ -11,7 +11,9 @@ def download_file(erecord, rid):
     fname = erecord["electronic_name"][0]
     size = erecord["file_size"]
     if os.path.isfile(fname):
-        if os.stat(fname) == size:
+        file_size = str(os.stat(fname).st_size)
+        print(size, file_size)
+        if size == file_size:
             print("Using already downloaded file")
             return fname
     elif r.status_code == 403:
@@ -19,15 +21,14 @@ def download_file(erecord, rid):
             "It looks like this file is embargoed.  We can't access until after the embargo is lifted"
         )
         return None
-    else:
-        with open(fname, "wb") as f:
-            total_length = int(r.headers.get("content-length"))
-            for chunk in progressbar(
-                r.iter_content(chunk_size=1024), max_value=(total_length / 1024) + 1
+    with open(fname, "wb") as f:
+        total_length = int(r.headers.get("content-length"))
+        for chunk in progressbar(
+            r.iter_content(chunk_size=1024), max_value=(total_length / 1024) + 1
             ):
-                if chunk:
-                    f.write(chunk)
-                    # f.flush()
+            if chunk:
+                f.write(chunk)
+                f.flush()
         return fname
 
 
@@ -47,8 +48,9 @@ def read_records(data, current, collection):
                 attachments = dataset.attachments(collection, rid)
                 for a in attachments:
                     split = a.split(" ")
-                    name = split[0]
-                    size = split[1]
+                    #Handle file names with spaces; size will always be last
+                    size = split[-1]
+                    name = a.replace(f' {size}','')
                     existing_names.append(name)
                     existing_size.append(size)
             # Look at all files
@@ -73,6 +75,7 @@ def read_records(data, current, collection):
         print("Saving record " + str(rid))
 
         if rid in current:
+            print('Update')
             update = dataset.update(collection, str(record["id"]), record)
             if update == False:
                 print(f"Failed, could not create record: {dataset.error_message()}")
@@ -84,6 +87,10 @@ def read_records(data, current, collection):
                 exit()
 
         if download == True:
+            temp = 'temp'
+            if os.path.isdir(temp) == False:
+                os.mkdir(temp)
+            os.chdir(temp)
             files = []
 
             print("Downloading files for ", rid)
@@ -97,7 +104,7 @@ def read_records(data, current, collection):
             print("Attaching files")
 
             if len(files) != 0:
-                err = dataset.attach(collection, rid, files)
+                err = dataset.attach('../'+collection, rid, files)
                 if err == False:
                     print(f"Failed on attach {dataset.error_message()}")
                     exit()
@@ -105,6 +112,7 @@ def read_records(data, current, collection):
             for f in files:
                 if f != None:
                     os.remove(f)
+            os.chdir('../')
 
             ### Need to handle old files
 
