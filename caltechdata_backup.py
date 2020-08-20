@@ -72,25 +72,22 @@ def read_records(data, current, collection):
                 download = True
 
         # Save results in dataset
-        print("Saving record " + str(rid))
+        print("Saving record " + rid)
 
         if rid in current:
             print('Update')
-            update = dataset.update(collection, str(record["id"]), record)
+            update = dataset.update(collection, rid, record)
             if update == False:
                 print(f"Failed, could not create record: {dataset.error_message()}")
                 exit()
         else:
-            update = dataset.create(collection, str(record["id"]), record)
-            if update == False:
+            create = dataset.create(collection, rid, record)
+            print('CREATED',create,rid)
+            if create == False:
                 print(f"Failed, could not create record: {dataset.error_message()}")
                 exit()
 
         if download == True:
-            temp = 'temp'
-            if os.path.isdir(temp) == False:
-                os.mkdir(temp)
-            os.chdir(temp)
             files = []
 
             print("Downloading files for ", rid)
@@ -104,7 +101,7 @@ def read_records(data, current, collection):
             print("Attaching files")
 
             if len(files) != 0:
-                err = dataset.attach('../'+collection, rid, files)
+                err = dataset.attach(collection, rid, files)
                 if err == False:
                     print(f"Failed on attach {dataset.error_message()}")
                     exit()
@@ -112,7 +109,6 @@ def read_records(data, current, collection):
             for f in files:
                 if f != None:
                     os.remove(f)
-            os.chdir('../')
 
             ### Need to handle old files
 
@@ -139,6 +135,12 @@ if __name__ == "__main__":
     current = dataset.keys(collection)
     req = requests.get(api_url)
     data = req.json()
+
+    temp = 'temp'
+    if os.path.isdir(temp) == False:
+        os.mkdir(temp)
+    os.chdir(temp)   
+    collection = '../'+collection
 
     read_records(data["hits"]["hits"], current, collection)
     # if we have more pages of data
