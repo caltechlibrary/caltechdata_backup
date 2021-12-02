@@ -1,3 +1,5 @@
 requests>=2.21
 py_dataset>=0.1.9
 progressbar2
+aiobotocore[boto3]
+s3fs
