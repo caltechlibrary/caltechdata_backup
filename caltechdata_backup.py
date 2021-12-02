@@ -1,9 +1,6 @@
 import argparse
-import urllib.request
-import ssl
 import json
 import os
-import subprocess
 import requests
 from py_dataset import dataset
 from progressbar import progressbar
@@ -12,23 +9,26 @@ from progressbar import progressbar
 def download_file(erecord, rid):
     r = requests.get(erecord["uniform_resource_identifier"], stream=True)
     fname = erecord["electronic_name"][0]
+    size = erecord["file_size"]
     if os.path.isfile(fname):
-        print("Using already downloaded file")
-        return fname
+        file_size = str(os.stat(fname).st_size)
+        print(size, file_size)
+        if size == file_size:
+            print("Using already downloaded file")
+            return fname
     elif r.status_code == 403:
         print(
             "It looks like this file is embargoed.  We can't access until after the embargo is lifted"
         )
         return None
-    else:
-        with open(fname, "wb") as f:
-            total_length = int(r.headers.get("content-length"))
-            for chunk in progressbar(
-                r.iter_content(chunk_size=1024), max_value=(total_length / 1024) + 1
+    with open(fname, "wb") as f:
+        total_length = int(r.headers.get("content-length"))
+        for chunk in progressbar(
+            r.iter_content(chunk_size=1024), max_value=(total_length / 1024) + 1
             ):
-                if chunk:
-                    f.write(chunk)
-                    # f.flush()
+            if chunk:
+                f.write(chunk)
+                f.flush()
         return fname
 
 
@@ -37,51 +37,54 @@ def read_records(data, current, collection):
     for record in data:
         rid = str(record["id"])
         metadata = record["metadata"]
-        download = True  # Flag for downloading files
+        download = False  # Flag for downloading files
         # Do we need to download?
         if "electronic_location_and_access" in metadata:
             # Get information about already backed up files:
+            existing_size = []
+            existing_names = []
             if rid in current:
                 # Get existing files
-                existing_size = []
-                existing_names = []
                 attachments = dataset.attachments(collection, rid)
                 for a in attachments:
                     split = a.split(" ")
-                    name = split[0]
-                    size = split[1]
+                    #Handle file names with spaces; size will always be last
+                    size = split[-1]
+                    name = a.replace(f' {size}','')
                     existing_names.append(name)
                     existing_size.append(size)
             # Look at all files
+            count = len(metadata["electronic_location_and_access"])
+            dl = 0
             for erecord in metadata["electronic_location_and_access"]:
                 # Check if file has been downloaded
                 size = erecord["file_size"]
                 name = erecord["electronic_name"][0]
                 if size in existing_size and name in existing_names:
-                    # We already downloaded
-                    print(
-                        "files already downloaded ",
-                        size,
-                        existing_size,
-                        name,
-                        existing_names,
-                    )
-                    download = False
-                else:
-                    print("file mismatch ", size, existing_size, name, existing_names)
+                    dl = dl + 1
+            if dl == count:
+                print(
+                    "files already downloaded ", existing_size, existing_names,
+                )
+                download = False
+            else:
+                print("file mismatch ", existing_size, existing_names, dl, count)
+                download = True
 
         # Save results in dataset
-        print("Saving record " + str(rid))
+        print("Saving record " + rid)
 
         if rid in current:
-            err = dataset.update(collection, str(record["id"]), record)
-            if err != "":
-                print(f"Failed, could not create record: {err}")
+            print('Update')
+            update = dataset.update(collection, rid, record)
+            if update == False:
+                print(f"Failed, could not create record: {dataset.error_message()}")
                 exit()
         else:
-            err = dataset.create(collection, str(record["id"]), record)
-            if err != "":
-                print(f"Failed, could not create record: {err}")
+            create = dataset.create(collection, rid, record)
+            print('CREATED',create,rid)
+            if create == False:
+                print(f"Failed, could not create record: {dataset.error_message()}")
                 exit()
 
         if download == True:
@@ -99,8 +102,8 @@ def read_records(data, current, collection):
 
             if len(files) != 0:
                 err = dataset.attach(collection, rid, files)
-                if err != "":
-                    print(f"Failed on attach {err}")
+                if err == False:
+                    print(f"Failed on attach {dataset.error_message()}")
                     exit()
 
             for f in files:
@@ -113,7 +116,7 @@ def read_records(data, current, collection):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
-        description="caltechdata_read queries the caltechDATA (Invenio 3) API\
+        description="caltechdata_backup queries the caltechDATA (Invenio 3) API\
     returns data and adds to dataset structure on disk"
     )
 
@@ -121,7 +124,7 @@ if __name__ == "__main__":
     if os.path.isdir(collection) == False:
         err = dataset.init(collection)
         if err != "":
-            print(f"Failed on creatr {err}")
+            print(f"Failed on create {err}")
             exit()
 
     args = parser.parse_args()
@@ -130,16 +133,19 @@ if __name__ == "__main__":
 
     # Get the existing records
     current = dataset.keys(collection)
-    req = urllib.request.Request(api_url)
-    s = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-    response = urllib.request.urlopen(req, context=s)
-    data = json.JSONDecoder().decode(response.read().decode("UTF-8"))
+    req = requests.get(api_url)
+    data = req.json()
+
+    temp = 'temp'
+    if os.path.isdir(temp) == False:
+        os.mkdir(temp)
+    os.chdir(temp)   
+    collection = '../'+collection
 
     read_records(data["hits"]["hits"], current, collection)
     # if we have more pages of data
     while "next" in data["links"]:
-        req = urllib.request.Request(data["links"]["next"])
-        response = urllib.request.urlopen(req, context=s)
-        data = json.JSONDecoder().decode(response.read().decode("UTF-8"))
+        req = requests.get(data["links"]["next"])
+        data = req.json()
 
         read_records(data["hits"]["hits"], current, collection)
