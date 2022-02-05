@@ -18,6 +18,15 @@ class Progress(object):
             self._bar.update(self._seen_so_far)
 
 
+def upload_file(f, file, size, bucket, path, s3_boto):
+    print(size)
+    print(path)
+    print(file)
+    bar = ProgressBar(max_value=size)
+    s3_boto.upload_fileobj(f, bucket, f"{file}", Callback=Progress(bar))
+    assert size == s3.du(f"{bucket}/{file}")
+
+
 parser = argparse.ArgumentParser(
     description="Adds S3-stored pilot files to backup on AWS Glacier Deep Archive"
 )
@@ -30,6 +39,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 folder = args.folder[0]
+location = args.file_location[0]
 
 bucket = "caltechdata-backup"
 path = "ini210004tommorrell/"
@@ -37,24 +47,45 @@ s3 = s3fs.S3FileSystem()
 current = s3.ls(f"{bucket}/{path}{folder}")
 existing = []
 for ex in current:
-    existing.append(ex.split(path)[1])
+    existing.append(ex.split(f"{bucket}/")[1])
 
-if args.file_location == "local":
+# Now use boto version of backup location to ensure copying works
+s3_boto = boto3.client("s3")
+
+if location == "local":
     backup_source = glob.glob(f"{folder}/*")
-elif args.file_location == "OSN":
+    for file in backup_source:
+        if file not in existing:
+            if os.path.isfile(file):
+                size = os.path.getsize(file)
+                print(file)
+                with open(file, "rb") as f:
+                    upload_file(f, f"{path}{file}", size, bucket, path, s3_boto)
+            else:
+                for fil in glob.glob(f"{file}/*"):
+                    print(fil)
+                    size = os.path.getsize(fil)
+                    with open(fil, "rb") as f:
+                        upload_file(f, f"{path}{fil}", size, bucket, path, s3_boto)
+elif location == "OSN":
     endpoint = "https://renc.osn.xsede.org/"
     osn_s3 = s3fs.S3FileSystem(anon=True, client_kwargs={"endpoint_url": endpoint})
     # Find the files to backup
-    path = "ini210004tommorrell/" + args.folder[0] + "/"
-    backup_source = osn_s3.glob(path + "/*")
-
-s3_boto = boto3.client("s3")
-
-for file in backup_source:
-    if file not in existing:
-        size = os.path.getsize(file)
-        bar = ProgressBar(max_value=size)
-        with open(file, "rb") as f:
-            print(file)
-            s3_boto.upload_fileobj(f, bucket, f"{path}{file}", Callback=Progress(bar))
-            assert size == s3.du(f"{bucket}/{path}{file}")
+    backup_source = osn_s3.glob(f"{path}{folder}/*")
+    for file in backup_source:
+        if file not in existing:
+            size = osn_s3.info(file)["Size"]
+            if size > 0:
+                # we have a file
+                print(file)
+                with osn_s3.open(file, "rb") as f:
+                    upload_file(f, file, size, bucket, path, s3_boto)
+            else:
+                # We have a directory, get all the files under it
+                for fil in osn_s3.glob(f"{file}/*"):
+                    print(fil)
+                    size = osn_s3.info(fil)["Size"]
+                    with osn_s3.open(fil, "rb") as f:
+                        upload_file(f, fil, size, bucket, path, s3_boto)
+else:
+    print(f"{args.file_location} is not a supported file location")
