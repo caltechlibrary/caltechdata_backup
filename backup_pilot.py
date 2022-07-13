@@ -18,14 +18,13 @@ class Progress(object):
 
 def upload_file(f, file, size, bucket, path, s3_boto):
     print(size)
-    print(path)
     print(file)
     bar = ProgressBar(max_value=size)
     s3_boto.upload_fileobj(f, bucket, f"{file}", Callback=Progress(bar))
     time.sleep(10)
     uploaded_size = s3.du(f"{bucket}/{file}")
-    print(uploaded_size)
-    assert size == uploaded_size
+    print(f'Reported size: {uploaded_size}')
+    #assert size == uploaded_size
 
 
 parser = argparse.ArgumentParser(
