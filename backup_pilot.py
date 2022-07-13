@@ -1,6 +1,6 @@
 import argparse, os, json, time
 import s3fs, boto3, glob
-from progressbar import ProgressBar, FileTransferSpeed, Bar, Percentage, ETA
+from progressbar import ProgressBar, FileTransferSpeed, Bar, Percentage, ETA, Timer
 import threading
 
 
@@ -20,7 +20,7 @@ def upload_file(f, file, size, bucket, path, s3_boto):
     print(size)
     print(file)
     bar = ProgressBar(max_value=size,
-            widgets=[FileTransferSpeed(),Bar(),Percentage(),ETA()])
+            widgets=[FileTransferSpeed(),Bar(),Percentage(),Timer(),ETA()])
     s3_boto.upload_fileobj(f, bucket, f"{file}", Callback=Progress(bar))
     
     #time.sleep(10)
