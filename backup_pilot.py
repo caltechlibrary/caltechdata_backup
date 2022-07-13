@@ -1,8 +1,6 @@
 import argparse, os, json, time
 import s3fs, boto3, glob
 from progressbar import ProgressBar
-from datacite import schema43
-from caltechdata_api import caltechdata_write
 import threading
 
 
