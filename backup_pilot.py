@@ -99,12 +99,19 @@ elif location == "OSN":
                         with osn_s3.open(fil, "rb") as f:
                             upload_file(f, fil, size, bucket, path, s3_boto)
                 else:
-                    #Support up to the third level of directories
                     for th in osn_s3.glob(f"{fil}/*"):
                         size = osn_s3.info(th)["Size"]
-                        if th not in existing:
-                            print(th)
-                            with osn_s3.open(th, "rb") as f:
-                                upload_file(f, th, size, bucket, path, s3_boto)
+                        if size > 0:
+                            if th not in existing:
+                                print(th)
+                                with osn_s3.open(th, "rb") as f:
+                                    upload_file(f, th, size, bucket, path, s3_boto)
+                        else:
+                            for fo in osn_s3.glob(f"{th}/*"):
+                                size = osn_s3.info(fo)["Size"]
+                                if fo not in existing:
+                                print(fo)
+                                with osn_s3.open(fo, "rb") as f:
+                                    upload_file(f, fo, size, bucket, path, s3_boto)
 else:
     print(f"{args.file_location} is not a supported file location")
