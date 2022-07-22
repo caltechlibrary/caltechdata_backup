@@ -49,10 +49,12 @@ current = s3.ls(f"{bucket}/{path}{folder}")
 existing = []
 for ex in current:
     existing.append(ex.split(f"{bucket}/")[1])
-    #We support looking at one level of folders
     second_level = s3.ls(ex)
     for sec in second_level:
         existing.append(sec.split(f"{bucket}/")[1])
+        third_level = s3.ls(sec)
+        for th in third_level:
+            existing.append(th.split(f"{bucket}/")[1])
 
 # Now use boto version of backup location to ensure copying works
 s3_boto = boto3.client("s3")
@@ -90,10 +92,19 @@ elif location == "OSN":
         else:
             # We have a directory, get all the files under it
             for fil in osn_s3.glob(f"{file}/*"):
-                if fil not in existing:    
-                    print(fil)
-                    size = osn_s3.info(fil)["Size"]
-                    with osn_s3.open(fil, "rb") as f:
-                        upload_file(f, fil, size, bucket, path, s3_boto)
+                size = osn_s3.info(fil)["Size"]
+                if size > 0:
+                    if fil not in existing:    
+                        print(fil)
+                        with osn_s3.open(fil, "rb") as f:
+                            upload_file(f, fil, size, bucket, path, s3_boto)
+                else:
+                    #Support up to the third level of directories
+                    for th in osn_s3.glob(f"{fil}/*"):
+                        size = osn_s3.info(th)["Size"]
+                        if th not in existing:
+                            print(th)
+                            with osn_s3.open(th, "rb") as f:
+                                upload_file(f, th, size, bucket, path, s3_boto)
 else:
     print(f"{args.file_location} is not a supported file location")
