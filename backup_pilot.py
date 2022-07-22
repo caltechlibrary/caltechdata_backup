@@ -110,8 +110,8 @@ elif location == "OSN":
                             for fo in osn_s3.glob(f"{th}/*"):
                                 size = osn_s3.info(fo)["Size"]
                                 if fo not in existing:
-                                print(fo)
-                                with osn_s3.open(fo, "rb") as f:
-                                    upload_file(f, fo, size, bucket, path, s3_boto)
+                                    print(fo)
+                                    with osn_s3.open(fo, "rb") as f:
+                                        upload_file(f, fo, size, bucket, path, s3_boto)
 else:
     print(f"{args.file_location} is not a supported file location")
