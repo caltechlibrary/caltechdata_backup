@@ -36,7 +36,7 @@ def upload_json(json_struct, bucket, location, s3_boto):
 
 bucket = "caltechdata-backup"
 path = "caltechdata"
-prefix = '10.22002'
+prefix = "10.22002"
 s3 = s3fs.S3FileSystem()
 current = s3.ls(f"{bucket}/{path}/{prefix}")
 existing = []
@@ -62,7 +62,7 @@ for c in tqdm(range(1, pages + 1)):
 for h in hits:
     rid = str(h["id"])
     doi = str(h["metadata"]["doi"])
-    idv = doi.split(f'{prefix}/')[1]
+    idv = doi.split(f"{prefix}/")[1]
 
     print(rid)
 
@@ -81,8 +81,11 @@ for h in hits:
             for erecord in metadata["electronic_location_and_access"]:
                 size = float(erecord["file_size"])
                 name = erecord["electronic_name"][0]
-                file = f"{path}/{doi}/{name}"
-                with urllib.request.urlopen(
-                    erecord["uniform_resource_identifier"]
-                ) as f:  # requests.get(url, stream=True) as f:
-                    upload_file(f, file, size, bucket, s3_boto)
+                if erecord["embargo_status"] == "open":
+                    file = f"{path}/{doi}/{name}"
+                    with urllib.request.urlopen(
+                        erecord["uniform_resource_identifier"]
+                    ) as f:  # requests.get(url, stream=True) as f:
+                        upload_file(f, file, size, bucket, s3_boto)
+                else:
+                    print(erecord)
