@@ -36,12 +36,11 @@ def upload_json(json_struct, bucket, location, s3_boto):
 
 bucket = "caltechdata-backup"
 path = "caltechdata"
-prefix = "10.22002"
 s3 = s3fs.S3FileSystem()
-current = s3.ls(f"{bucket}/{path}/{prefix}")
+current = s3.ls(f"{bucket}/{path}")
 existing = []
 for ex in current:
-    existing.append(ex.split(f"{bucket}/{path}/{prefix}/")[1])
+    existing.append(ex.split(f"{bucket}/{path}/")[1])
 
 # Now use boto version of backup location to ensure copying works
 s3_boto = boto3.client("s3")
@@ -61,19 +60,17 @@ for c in tqdm(range(1, pages + 1)):
 
 for h in hits:
     rid = str(h["id"])
-    doi = str(h["metadata"]["doi"])
-    idv = doi.split(f"{prefix}/")[1]
 
     print(rid)
 
     # ALSO need to do file checks
-    if idv not in existing:
+    if rid not in existing:
 
         metadata = decustomize_schema(h["metadata"], True, True, True, "43")
         # Write both the raw API data and DataCite metadata as json files
-        location = f"{path}/{doi}/datacite.json"
+        location = f"{path}/{rid}/datacite.json"
         upload_json(metadata, bucket, location, s3_boto)
-        location = f"{path}/{doi}/raw.json"
+        location = f"{path}/{rid}/raw.json"
         upload_json(h, bucket, location, s3_boto)
         # Download and upload files
         if "electronic_location_and_access" in metadata:
@@ -82,7 +79,7 @@ for h in hits:
                 size = float(erecord["file_size"])
                 name = erecord["electronic_name"][0]
                 if erecord["embargo_status"] == "open":
-                    file = f"{path}/{doi}/{name}"
+                    file = f"{path}/{rid}/{name}"
                     with urllib.request.urlopen(
                         erecord["uniform_resource_identifier"]
                     ) as f:  # requests.get(url, stream=True) as f:
