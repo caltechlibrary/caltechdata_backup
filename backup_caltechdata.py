@@ -78,7 +78,7 @@ for h in hits:
             for erecord in metadata["electronic_location_and_access"]:
                 size = float(erecord["file_size"])
                 name = erecord["electronic_name"][0]
-                if erecord["embargo_status"] == "open":
+                if erecord["embargo_status"] == "open" or erecord["embargo_status"] == "{{embargo_status}}":
                     file = f"{path}/{rid}/{name}"
                     with urllib.request.urlopen(
                         erecord["uniform_resource_identifier"]
