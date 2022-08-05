@@ -30,17 +30,16 @@ def upload_file(f, file, size, bucket, s3_boto):
     s3_boto.upload_fileobj(f, bucket, f"{file}", Callback=Progress(bar))
 
 
-def upload_json(json_struct, bucket, location, s3_boto):
-    s3_boto.put_object(Bucket=bucket, Body=json.dumps(json_struct), Key=location)
-
-
 bucket = "caltechdata-backup"
 path = "caltechdata"
 s3 = s3fs.S3FileSystem()
 current = s3.ls(f"{bucket}/{path}")
 existing = []
 for ex in current:
-    existing.append(ex.split(f"{bucket}/{path}/")[1])
+    existing.append(ex.split(f"{bucket}/")[1])
+    second_level = s3.ls(ex)
+    for sec in second_level:
+        existing.append(sec.split(f"{bucket}/")[1])
 
 # Now use boto version of backup location to ensure copying works
 s3_boto = boto3.client("s3")
@@ -60,29 +59,16 @@ for c in tqdm(range(1, pages + 1)):
 
 for h in hits:
     rid = str(h["id"])
-
-    # ALSO need to do file checks
-    if rid not in existing:
-
-        print(rid)
-
-        metadata = decustomize_schema(h["metadata"], True, True, True, "43")
-        # Write both the raw API data and DataCite metadata as json files
-        location = f"{path}/{rid}/datacite.json"
-        upload_json(metadata, bucket, location, s3_boto)
-        location = f"{path}/{rid}/raw.json"
-        upload_json(h, bucket, location, s3_boto)
-        # Download and upload files
-        if "electronic_location_and_access" in metadata:
-            count = len(metadata["electronic_location_and_access"])
-            for erecord in metadata["electronic_location_and_access"]:
-                size = float(erecord["file_size"])
-                name = erecord["electronic_name"][0]
-                if erecord["embargo_status"] == "open" or erecord["embargo_status"] == "{{embargo_status}}":
-                    file = f"{path}/{rid}/{name}"
+    if "electronic_location_and_access" in metadata:
+        for erecord in metadata["electronic_location_and_access"]:
+            size = float(erecord["file_size"])
+            name = erecord["electronic_name"][0]
+            file = f"{path}/{rid}/{name}"
+            if file not in existing:
+                if erecord["embargo_status"] != "closed":
                     with urllib.request.urlopen(
                         erecord["uniform_resource_identifier"]
-                    ) as f:  # requests.get(url, stream=True) as f:
+                    ) as f:
                         upload_file(f, file, size, bucket, s3_boto)
                 else:
                     print(erecord)

@@ -19,13 +19,15 @@ class Progress(object):
 def upload_file(f, file, size, bucket, path, s3_boto):
     print(size)
     print(file)
-    bar = ProgressBar(max_value=size,
-            widgets=[FileTransferSpeed(),Bar(),Percentage(),Timer(),ETA()])
+    bar = ProgressBar(
+        max_value=size,
+        widgets=[FileTransferSpeed(), Bar(), Percentage(), Timer(), ETA()],
+    )
     s3_boto.upload_fileobj(f, bucket, f"{file}", Callback=Progress(bar))
-    
-    #time.sleep(10)
-    #uploaded_size = s3.du(f"{bucket}/{file}")
-    #assert size == uploaded_size
+
+    # time.sleep(10)
+    # uploaded_size = s3.du(f"{bucket}/{file}")
+    # assert size == uploaded_size
 
 
 parser = argparse.ArgumentParser(
@@ -84,7 +86,7 @@ elif location == "OSN":
     for file in backup_source:
         size = osn_s3.info(file)["Size"]
         if size > 0:
-            #we have a fille
+            # we have a fille
             if file not in existing:
                 print(file)
                 with osn_s3.open(file, "rb") as f:
@@ -94,7 +96,7 @@ elif location == "OSN":
             for fil in osn_s3.glob(f"{file}/*"):
                 size = osn_s3.info(fil)["Size"]
                 if size > 0:
-                    if fil not in existing:    
+                    if fil not in existing:
                         print(fil)
                         with osn_s3.open(fil, "rb") as f:
                             upload_file(f, fil, size, bucket, path, s3_boto)

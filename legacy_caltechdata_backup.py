@@ -25,7 +25,7 @@ def download_file(erecord, rid):
         total_length = int(r.headers.get("content-length"))
         for chunk in progressbar(
             r.iter_content(chunk_size=1024), max_value=(total_length / 1024) + 1
-            ):
+        ):
             if chunk:
                 f.write(chunk)
                 f.flush()
@@ -48,9 +48,9 @@ def read_records(data, current, collection):
                 attachments = dataset.attachments(collection, rid)
                 for a in attachments:
                     split = a.split(" ")
-                    #Handle file names with spaces; size will always be last
+                    # Handle file names with spaces; size will always be last
                     size = split[-1]
-                    name = a.replace(f' {size}','')
+                    name = a.replace(f" {size}", "")
                     existing_names.append(name)
                     existing_size.append(size)
             # Look at all files
@@ -64,7 +64,9 @@ def read_records(data, current, collection):
                     dl = dl + 1
             if dl == count:
                 print(
-                    "files already downloaded ", existing_size, existing_names,
+                    "files already downloaded ",
+                    existing_size,
+                    existing_names,
                 )
                 download = False
             else:
@@ -75,14 +77,14 @@ def read_records(data, current, collection):
         print("Saving record " + rid)
 
         if rid in current:
-            print('Update')
+            print("Update")
             update = dataset.update(collection, rid, record)
             if update == False:
                 print(f"Failed, could not create record: {dataset.error_message()}")
                 exit()
         else:
             create = dataset.create(collection, rid, record)
-            print('CREATED',create,rid)
+            print("CREATED", create, rid)
             if create == False:
                 print(f"Failed, could not create record: {dataset.error_message()}")
                 exit()
@@ -136,11 +138,11 @@ if __name__ == "__main__":
     req = requests.get(api_url)
     data = req.json()
 
-    temp = 'temp'
+    temp = "temp"
     if os.path.isdir(temp) == False:
         os.mkdir(temp)
-    os.chdir(temp)   
-    collection = '../'+collection
+    os.chdir(temp)
+    collection = "../" + collection
 
     read_records(data["hits"]["hits"], current, collection)
     # if we have more pages of data
