@@ -58,6 +58,7 @@ for c in tqdm(range(1, pages + 1)):
     hits += response["hits"]["hits"]
 
 for h in hits:
+    metadata = h["metadata"]
     rid = str(h["id"])
     if "electronic_location_and_access" in metadata:
         for erecord in metadata["electronic_location_and_access"]:
