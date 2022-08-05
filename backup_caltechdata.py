@@ -61,10 +61,10 @@ for c in tqdm(range(1, pages + 1)):
 for h in hits:
     rid = str(h["id"])
 
-    print(rid)
-
     # ALSO need to do file checks
     if rid not in existing:
+
+        print(rid)
 
         metadata = decustomize_schema(h["metadata"], True, True, True, "43")
         # Write both the raw API data and DataCite metadata as json files
