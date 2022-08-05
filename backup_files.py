@@ -64,12 +64,13 @@ for h in hits:
         for erecord in metadata["electronic_location_and_access"]:
             size = float(erecord["file_size"])
             name = erecord["electronic_name"][0]
-            file = f"{path}/{rid}/{name}"
-            if file not in existing:
+            filen = f"{path}/{rid}/{name}"
+            if filen not in existing:
                 if erecord["embargo_status"] != "closed":
+                    print(filen)
                     with urllib.request.urlopen(
                         erecord["uniform_resource_identifier"]
                     ) as f:
-                        upload_file(f, file, size, bucket, s3_boto)
+                        upload_file(f, filen, size, bucket, s3_boto)
                 else:
                     print(erecord)
