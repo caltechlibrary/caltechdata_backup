@@ -66,7 +66,7 @@ for h in hits:
             name = erecord["electronic_name"][0]
             filen = f"{path}/{rid}/{name}"
             if filen not in existing:
-                if erecord["embargo_status"] != "closed":
+                if erecord["embargo_status"] != "embargoed":
                     print(filen)
                     with urllib.request.urlopen(
                         erecord["uniform_resource_identifier"]
