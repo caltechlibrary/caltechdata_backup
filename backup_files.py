@@ -7,6 +7,8 @@ from caltechdata_api import decustomize_schema
 from progressbar import ProgressBar, FileTransferSpeed, Bar, Percentage, ETA, Timer
 import threading
 
+KB = 1024
+MB = KB * KB
 
 class Progress(object):
     def __init__(self, bar):
@@ -27,7 +29,10 @@ def upload_file(f, file, size, bucket, s3_boto):
         max_value=size,
         widgets=[FileTransferSpeed(), Bar(), Percentage(), Timer(), ETA()],
     )
-    s3_boto.upload_fileobj(f, bucket, f"{file}", Callback=Progress(bar))
+    config = boto3.s3.transfer.TransferConfig(
+            multipart_chunksize=80 * MB
+    )
+    s3_boto.upload_fileobj(f, bucket, f"{file}", Callback=Progress(bar), Config=config)
 
 
 bucket = "caltechdata-backup"
