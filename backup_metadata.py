@@ -2,12 +2,23 @@ import math, os, json, time
 import s3fs, boto3, glob
 from tqdm import tqdm
 import requests
+import argparse
 from caltechdata_api import decustomize_schema
 
 
 def upload_json(json_struct, bucket, location, s3_boto):
     s3_boto.put_object(Bucket=bucket, Body=json.dumps(json_struct), Key=location)
 
+
+parser = argparse.ArgumentParser(description="Backup caltechDATA metadata to S3")
+parser.add_argument(
+    "-ids",
+    type=int,
+    nargs="+",
+    help="The CaltechDATA ID for each record of interest",
+)
+
+args = parser.parse_args()
 
 bucket = "caltechdata-backup"
 path = "caltechdata"
@@ -31,11 +42,19 @@ for c in tqdm(range(1, pages + 1)):
 
 for h in tqdm(hits):
     rid = str(h["id"])
-    print(rid)
+    backup = False
+    if args.ids:
+        for idv in args.ids:
+            if int(rid) == int(idv):
+                backup = True
+    else:
+        backup = True
 
-    metadata = decustomize_schema(h["metadata"], True, True, True, "43")
-    # Write both the raw API data and DataCite metadata as json files
-    location = f"{path}/{rid}/datacite.json"
-    upload_json(metadata, bucket, location, s3_boto)
-    location = f"{path}/{rid}/raw.json"
-    upload_json(h, bucket, location, s3_boto)
+    if backup:
+        print(rid)
+        metadata = decustomize_schema(h["metadata"], True, True, True, "43")
+        # Write both the raw API data and DataCite metadata as json files
+        location = f"{path}/{rid}/datacite.json"
+        upload_json(metadata, bucket, location, s3_boto)
+        location = f"{path}/{rid}/raw.json"
+        upload_json(h, bucket, location, s3_boto)
